@@ -1,0 +1,6 @@
+BasedOnStyle: Microsoft
+IndentWidth: 8
+ColumnLimit: 80
+TabWidth: 8
+UseTab: ForIndentation
+PointerAlignment: Right
