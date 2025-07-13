@@ -1,8 +1,10 @@
-project(sh3modlib C)
+project(sh3modlib)
 
 add_library(sh3modlib 
-	arc/arc_table.c
-	utils.c
+	mem/impl/front.cpp
+	arc/impl/front.cpp
+	crk/memstream.cpp
+	crk/tabula.cpp
 )
 target_include_directories(sh3modlib PUBLIC ./)
 target_link_libraries(sh3modlib ZLIB::ZLIB)

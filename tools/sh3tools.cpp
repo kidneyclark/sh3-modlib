@@ -25,6 +25,7 @@ const char *no_args_msg =
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <crk/string.h>
 
 struct path_tree_node
 {
@@ -42,27 +43,29 @@ void free_table_tree(struct path_tree_node *root)
 	free(root);
 }
 
-struct path_tree_node *create_table_tree(struct arc_table *table)
+path_tree_node *create_table_tree(arc_Table &table)
 {
 	// possible improvements:
 	//	- store all path_tree_node contiguously
 	//	- store all strings contiguously
 	char tok_proxy[256];
 
-	struct path_tree_node *root = malloc(sizeof(struct path_tree_node));
+	path_tree_node *root = (path_tree_node*)malloc(sizeof(path_tree_node));
 	root->child = NULL;
 	root->sibling = NULL;
 	strcpy(root->name, "root");
 
-	for (int j = 0; j < table->vfile_count; j++)
+	//for (int j = 0; j < table.vfiles.size(); j++)
+	for (auto &vf : table.vfiles)
 	{
-		char *str = table->strings + table->vfiles[j].string_index;
+		//char *str = table->strings + table->vfiles[j].string_index;
+		const char *str = table.strings[vf.string_index];
 		strcpy(tok_proxy, str);
 
 		char *pch;
 		pch = strtok (tok_proxy,"\\/");
 
-		struct path_tree_node **it = &root; 
+		path_tree_node **it = &root; 
 		while (pch != NULL)
 		{
 			it = &((*it)->child);
@@ -74,7 +77,7 @@ struct path_tree_node *create_table_tree(struct arc_table *table)
 				it = &((*it)->sibling);
 			}
 
-			(*it) = malloc(sizeof(struct path_tree_node));
+			(*it) = (path_tree_node*)malloc(sizeof(path_tree_node));
 			(*it)->child = NULL;
 			(*it)->sibling = NULL;
 			strcpy((*it)->name, pch);
@@ -127,60 +130,74 @@ void print_tree_recursive(struct path_tree_node *node, int depth, uint64_t endma
 	print_tree_recursive(node->sibling, depth, endmask);
 }
 
+#include <fstream>
+#include <cassert>
+
 int main(int argc, char **argv)
 {
+	mem_CreateContext();
+	COM_REGISTER_CRK(string);
+
+	crk::string path;
+	std::ifstream arcfile;
+	arc_Table table;
+
 	if (argc <= 1)
 		goto no_args;
 
-	struct arc_ctx _arc_ctx;
+	arc_CreateContext();
 
-	strncpy(_arc_ctx.data_path, argv[argc - 1], 255);
-	_arc_ctx.data_path[255] = '\0';
+	path = crk::string(argv[argc - 1]) + "/arc.arc";
 
-	struct arc_table table = {0};
-	if (arc_table_load(&_arc_ctx, &table) != 0)
+	arcfile.open(path.c_str(), std::ios_base::binary);
+	if (!arcfile.is_open())
 	{
-		printf("error: %s\n", _arc_ctx.msg);
+		printf("Invalid data path!\n");
 		return 0;
 	}
+		
+	table = arc_CreateTableFromStream(arcfile);
+	arcfile.close();
 
 	for (int i = 1; i < argc-1;)
 	{
 		if (strncmp(argv[i], "--list-clusters", 16) == 0)
 		{
-			printf("%llu clusters found:\n", table.cluster_count);
-			for (int j = 0; j < table.cluster_count; j++)
+			printf("%llu clusters found:\n", table.clusters.size());
+			int count = 1;
+			for (auto &c : table.clusters)
 			{
-				printf("\tcluster #%i = \"%s\"\n", j+1, table.strings + table.clusters[j].string_index);
+				printf("\tcluster #%i = \"%s\"\n", count++, table.strings[c.string_index]);
 			}
 			fflush(stdout);
 			return 0;
 		}
 		if (strncmp(argv[i], "--list-all-vfiles", 17) == 0)
 		{
-			printf("%llu virtual files found:\n", table.vfile_count);
-			for (int j = 0; j < table.vfile_count; j++)
+			printf("%llu virtual files found:\n", table.vfiles.size());
+			int count = 1;
+			for (auto &vf : table.vfiles)
 			{
-				printf("\tvfile #%i = \"%s\"\n", j+1, table.strings + table.vfiles[j].string_index);
+				printf("\tvfile #%i = \"%s\"\n", count++, table.strings[vf.string_index]);
 			}
 			fflush(stdout);
 			return 0;
 		}
 		if (strncmp(argv[i], "--list-vfiles=", 14) == 0)
 		{
-			int c_idx = arc_table_get_cluster_index(&table, (argv[i] + 14));
+			size_t c_idx = arc_GetTableClusterIndex(table, (argv[i] + 14));
 			printf("%i virtual files found:\n", table.clusters[c_idx].vfile_count);
-			for (int j = 0; j < table.vfile_count; j++)
+			for (auto &vf : table.vfiles)
 			{
-				if (c_idx == table.vfiles[j].cluster_index)
-					printf("\tvfile #%i = \"%s\"\n", table.vfiles[j].index+1, table.strings + table.vfiles[j].string_index);
+				if (c_idx == vf.cluster_index)
+					printf("\tvfile #%i = \"%s\"\n", vf.index+1, table.strings[vf.string_index]);
 			}
 			fflush(stdout);
 			return 0;
 		}
 		if (strncmp(argv[i], "--tree-all", 10) == 0)
 		{
-			struct path_tree_node *root = create_table_tree(&table);
+			path_tree_node *root = create_table_tree(table);
 			print_tree_recursive(root, 0, ~0);
 			free_table_tree(root);
 			printf("tree build\n");

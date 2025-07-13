@@ -1,9 +1,11 @@
-#ifndef SH3ML_MAIN
-#define SH3ML_MAIN
+#ifndef SH3MODLIB_H
+#define SH3MODLIB_H
 
-#include "arc/arc.h"
-#include "arc/arc_table.h"
-#include "defs.h"
-#include "utils.h"
+// MEM
+#include "mem/front.h"
+#include "mem/allocator.h"
+
+// ARC
+#include "arc/front.h"
 
 #endif
