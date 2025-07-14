@@ -1,0 +1,8 @@
+[submodule "external/zlib"]
+	path = external/zlib
+	url = https://github.com/madler/zlib.git
+	shallow = true
+[submodule "external/wxWidgets"]
+	path = external/wxWidgets
+	url = https://github.com/wxWidgets/wxWidgets.git
+	shallow = true

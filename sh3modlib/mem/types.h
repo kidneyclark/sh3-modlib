@@ -9,4 +9,15 @@ struct mem_Chunk
 	u64 size;
 };
 
+// Facilitates the use of mem_Chunk.
+// Stores '.count' elements of T.
+template <typename T>
+struct mem_Array
+{
+	T *array;
+	u64 count;
+
+	T &operator[](size_t idx) { return array[idx]; }
+};
+
 #endif

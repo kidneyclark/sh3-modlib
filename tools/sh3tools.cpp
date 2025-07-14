@@ -42,7 +42,7 @@ void free_table_tree(struct path_tree_node *root)
 	free_table_tree(root->sibling);
 	free(root);
 }
-
+/*
 path_tree_node *create_table_tree(arc_Table &table)
 {
 	// possible improvements:
@@ -86,7 +86,7 @@ path_tree_node *create_table_tree(arc_Table &table)
 		}
 	}
 	return root;
-}
+}*/
 
 void print_tree_recursive(struct path_tree_node *node, int depth, uint64_t endmask)
 {
@@ -132,77 +132,71 @@ void print_tree_recursive(struct path_tree_node *node, int depth, uint64_t endma
 
 #include <fstream>
 #include <cassert>
+#include <iostream>
+#include <format>
 
 int main(int argc, char **argv)
 {
 	mem_CreateContext();
 	COM_REGISTER_CRK(string);
 
-	crk::string path;
-	std::ifstream arcfile;
-	arc_Table table;
-
 	if (argc <= 1)
 		goto no_args;
 
 	arc_CreateContext();
-
-	path = crk::string(argv[argc - 1]) + "/arc.arc";
-
-	arcfile.open(path.c_str(), std::ios_base::binary);
-	if (!arcfile.is_open())
+	arc_SetDataDirectory(argv[argc - 1]);
+	arc_LoadData();
+	if (!arc_IsDataLoaded())
 	{
-		printf("Invalid data path!\n");
-		return 0;
+		std::cerr << "Could not load the game data!" << std::endl;
+		return -1;
 	}
-		
-	table = arc_CreateTableFromStream(arcfile);
-	arcfile.close();
 
 	for (int i = 1; i < argc-1;)
 	{
 		if (strncmp(argv[i], "--list-clusters", 16) == 0)
 		{
-			printf("%llu clusters found:\n", table.clusters.size());
-			int count = 1;
-			for (auto &c : table.clusters)
+			auto clusters = arc_GetClusters();
+			std::cout << std::format("{} clusters found:\n", clusters.count);
+			for (int j = 0; j < clusters.count; j++)
 			{
-				printf("\tcluster #%i = \"%s\"\n", count++, table.strings[c.string_index]);
+				std::cout << std::format("\tcluster #{} = \"{}\"\n", j, clusters[j].name);
 			}
-			fflush(stdout);
+			std::flush(std::cout);
 			return 0;
 		}
 		if (strncmp(argv[i], "--list-all-vfiles", 17) == 0)
 		{
-			printf("%llu virtual files found:\n", table.vfiles.size());
-			int count = 1;
-			for (auto &vf : table.vfiles)
+			auto vfiles = arc_GetVfiles();
+			std::cout << std::format("{} virtual files found:\n", vfiles.count);
+			for (int j = 0; j < vfiles.count; j++)
 			{
-				printf("\tvfile #%i = \"%s\"\n", count++, table.strings[vf.string_index]);
+				std::cout << std::format("\tvfile #{} = \"{}\"\n", j, vfiles[j].name);
 			}
-			fflush(stdout);
+			std::flush(std::cout);
 			return 0;
 		}
 		if (strncmp(argv[i], "--list-vfiles=", 14) == 0)
 		{
-			size_t c_idx = arc_GetTableClusterIndex(table, (argv[i] + 14));
-			printf("%i virtual files found:\n", table.clusters[c_idx].vfile_count);
-			for (auto &vf : table.vfiles)
+			arc_Cluster cluster = arc_GetCluster(argv[i] + 14);
+			printf("%i virtual files found:\n", cluster.vfile_count);
+			auto vfiles = arc_GetVfiles();
+			for (int j = 0; j < vfiles.count; j++)
 			{
-				if (c_idx == vf.cluster_index)
-					printf("\tvfile #%i = \"%s\"\n", vf.index+1, table.strings[vf.string_index]);
+				if (cluster.id == vfiles[j].cluster_id)
+					printf("\tvfile #%i = \"%s\"\n", vfiles[j].id+1, vfiles[j].name);
 			}
 			fflush(stdout);
 			return 0;
 		}
 		if (strncmp(argv[i], "--tree-all", 10) == 0)
 		{
-			path_tree_node *root = create_table_tree(table);
+			/*path_tree_node *root = create_table_tree(table);
 			print_tree_recursive(root, 0, ~0);
 			free_table_tree(root);
 			printf("tree build\n");
 			printf("\n");
-			fflush(stdout);
+			fflush(stdout);*/
 			return 0;
 		}
 		if (strncmp(argv[i], "--tree-cluster", 14) == 0)

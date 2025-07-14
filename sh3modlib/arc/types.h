@@ -2,27 +2,20 @@
 #define ARC_TYPES_H
 
 #include <com/types.h>
-#include <crk/vector.h>
-#include <crk/tabula.h>
 
-struct arc_table_cluster
+struct arc_Cluster
 {
+	u32 id; // unique per cluster
 	u32 vfile_count;
-	i32 string_index;
+	const char *name;
 };
 
-struct arc_table_vfile
+struct arc_Vfile
 {
-	u16 index;
-	u16 cluster_index;
-	i32 string_index;
-};
-
-struct arc_Table
-{
-	crk::vector<arc_table_cluster> clusters;
-	crk::vector<arc_table_vfile> vfiles;
-	crk::Tabula strings;
+	u32 id; // unique per vfile
+	u16 index; // index inside cluster
+	u32 cluster_id; // cluster that's containing this vfile
+	const char *name;
 };
 
 #endif

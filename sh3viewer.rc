@@ -1,0 +1,4 @@
+aaa_sh3viewer_icon ICON "sh3viewer.ico"
+sh3viewer_icon_hq ICON "sh3viewer_hq.ico"
+#define wxUSE_NO_MANIFEST 0
+#include "wx/msw/wx.rc"
